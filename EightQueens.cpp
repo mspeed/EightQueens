@@ -84,10 +84,14 @@ private:
     EliminateRank(Index);
     // File - All positive values with the same lowest 3 bits
     EliminateFile(Index);
-    // Right-increasing diagonal - add 9 until we have 0x7 in the lowest 3 bits 
+    // Right-increasing diagonal - add 9 until we have 0x7 in the lowest 3 bits
+    EliminateRightIncreasingDiagonal(Index);
     // Right-decreasing diagonal - subtract 7 until we have 0x7 in the lowest 3 bits
+    EliminateRightDecreasingDiagonal(Index);
     // Left-increasing diagonal - add 7 until we have 0x0 in the lowest 3 bits
-    // Left-decreasing diagonal - subtract 0 until we have 0x0 in the lowest 3 bits.
+    EliminateLeftIncreasingDiagonal(Index);
+    // Left-decreasing diagonal - subtract 9 until we have 0x0 in the lowest 3 bits.
+    EliminateLeftDecreasingDiagonal(Index);
     
   };
 
@@ -118,6 +122,70 @@ private:
       }
     }
   }
+
+  void EliminateRightIncreasingDiagonal(int Index)
+  {
+    // Add 9 until we have 7 in the lower 3 bits, or we exceed 64.
+    while(Index < 64)
+    {
+      if(mLegal[Index])
+      {
+	mLegal[Index] = false;
+	mBoard.PlacePiece('x', Index);
+      }
+      
+      if((Index & 0x7) == 0x7) return;
+      Index += 9;
+    }
+  }
+
+  void EliminateRightDecreasingDiagonal(int Index)
+  {
+    // Subtract 7 until we have 7 in the lower 3 bits, or we drop below 0.
+    while(Index >= 0)
+    {
+      if(mLegal[Index])
+      {
+	mLegal[Index] = false;
+	mBoard.PlacePiece('x', Index);
+      }
+      
+      if((Index & 0x7) == 0x7) return;
+      Index -= 7;
+    }
+  }
+
+  void EliminateLeftIncreasingDiagonal(int Index)
+  {
+    // Add 7 until we have 0 in the lower 3 bits, or we exceed 64.
+    while(Index < 64)
+    {
+      if(mLegal[Index])
+      {
+	mLegal[Index] = false;
+	mBoard.PlacePiece('x', Index);
+      }
+      
+      if((Index & 0x7) == 0x0) return;
+      Index += 7;
+    }
+  }
+
+  void EliminateLeftDecreasingDiagonal(int Index)
+  {
+    // Subtract 9 until we have 0 in the lower 3 bits, or we drop below 0.
+    while(Index >= 0)
+    {
+      if(mLegal[Index])
+      {
+	mLegal[Index] = false;
+	mBoard.PlacePiece('x', Index);
+      }
+      
+      if((Index & 0x7) == 0x0) return;
+      Index -= 9;
+    }
+  }
   
   int NextLegalMove() const
   {
@@ -125,27 +193,18 @@ private:
     return -1;
   }
 
-
 };
 
 
 
 
-int main()
+int main(int argc, char* argv[])
 {
-  cBoard board;
-
-  //board.Draw();
-
-  //  board.PlacePiece('Q', 'a', 1);
-  //  board.PlacePiece('Q', 'b', 2);
+  int const Iterations = atoi(argv[1]);
   
-  //board.Draw();
-
+  cBoard board;
   cEightQueensModel EQM(board);
 
-  EQM.Next();
-  EQM.Next();
-
+  for(int i = 0; i < Iterations; i++) EQM.Next();
 
 }

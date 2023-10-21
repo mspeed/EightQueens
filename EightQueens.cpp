@@ -49,46 +49,82 @@ class EQ
 {
 public:
   static optional<uint64_t> AddQueen(uint64_t QueenPattern, uint64_t LegalPositions)
-  {
+  {    
+    int const QueenCount = std::bitset<64>(QueenPattern).count();
+    int const LegalPositionsCount = std::bitset<64>(LegalPositions).count();
+
+    if(!LegalPositionsCount) return std::nullopt;
+    
+    cout << "There are " << QueenCount << " queens on the board and ";
+    cout << LegalPositionsCount << " legal positions remaining." << endl;
+    
     // Find next legal position and stick a queen in it.
-
-    //pp(QueenPattern, LegalPositions);
+    int QueenIndex = -1;
+    for(int i = 63; i >= 0; i--)
+    {
+      if((LegalPositions >> i) & 0x1)
+      {
+	QueenIndex = (63 - i);
+	break;
+      }
+    }
     
-    //uint64_t const QueenIndex = ((uint64_t)64)-(countr_one(LegalPositions));
-
-    uint64_t const QueenIndex = 36;//((uint64_t)64)-(countr_one(LegalPositions));
-
-    
-    cout << "Adding queen at index: " << QueenIndex << endl;
-    
+    //uint64_t const QueenIndex = ((uint64_t)64)-(countr_one(LegalPositions));    
+    cout << "Adding queen at index: " << QueenIndex << endl;    
     QueenPattern |= (((uint64_t)1) << (63-QueenIndex));
 
-    //pp(QueenPattern, LegalPositions);
+    if(8 == std::bitset<64>(QueenPattern).count()) return QueenPattern;
     
     // Update legal positions mask.
+    ////////////////////////////////////////
     // Rank - everything &7
     LegalPositions = EliminateRank(LegalPositions, QueenIndex);
-    pp(QueenPattern, LegalPositions);
+    //pp(QueenPattern, LegalPositions);
     // File - All positive values with the same lowest 3 bits
     LegalPositions = EliminateFile(LegalPositions, QueenIndex);
-    pp(QueenPattern, LegalPositions);
+    //pp(QueenPattern, LegalPositions);
     // Right-increasing diagonal - add 9 until we have 0x7 in the lowest 3 bits
     LegalPositions = EliminateRightIncreasingDiagonal(LegalPositions, QueenIndex);
-    pp(QueenPattern, LegalPositions);
+    //pp(QueenPattern, LegalPositions);
     // Right-decreasing diagonal - subtract 7 until we have 0x7 in the lowest 3 bits
     LegalPositions = EliminateRightDecreasingDiagonal(LegalPositions, QueenIndex);
-    pp(QueenPattern, LegalPositions);
+    //pp(QueenPattern, LegalPositions);
     // Left-increasing diagonal - add 7 until we have 0x0 in the lowest 3 bits
     LegalPositions = EliminateLeftIncreasingDiagonal(LegalPositions, QueenIndex);
-    pp(QueenPattern, LegalPositions);
+    //pp(QueenPattern, LegalPositions);
     // Left-decreasing diagonal - subtract 9 until we have 0x0 in the lowest 3 bits.
     LegalPositions = EliminateLeftDecreasingDiagonal(LegalPositions, QueenIndex);
     pp(QueenPattern, LegalPositions);
 	
-    
-    // If there's 8 queens we're done.
 
-    return std::nullopt;
+    optional<uint64_t> NewAttempt;
+    NewAttempt = AddQueen(QueenPattern, LegalPositions);
+    while(!NewAttempt.has_value())
+    {
+      // Don't test this position again.
+      // Invalidate what would have been tested and try again.
+      // If there's nothing left, *we* return.
+
+      int NextQueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
+
+      cout << "Failed to place. Call based the attempt on index: " << NextQueenIndex << endl;
+      
+      if(NextQueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
+            
+      LegalPositions &= ~(((uint64_t)1)<<(63-NextQueenIndex));
+      NewAttempt = AddQueen(QueenPattern, LegalPositions);
+    }
+
+    return NewAttempt.value();
+  }
+
+  static int NextLegalPosition(uint64_t LegalPositions, int QueenIndex)
+  {
+    for(int i = (63-(QueenIndex+1)); i >= 0; i--)
+    {
+      if((LegalPositions >> i) & 0x1) return (63 - i);
+    }
+    return -1;
   }
 
   static void pp(uint64_t QueenPattern, uint64_t LegalPositions)
@@ -100,6 +136,21 @@ public:
       {
 	if((Rank >> j) & 0x1) cout << '-';
 	else cout << 'x';
+      }
+      cout << endl;
+    }
+    cout << endl;
+  }
+
+  static void qq(uint64_t QueenPattern)
+  {
+    for(int i = 0; i < 8; i++)
+    {
+      int Rank = static_cast<uint8_t>(QueenPattern >> (8*i));
+      for(int j = 7; j >= 0; j--)
+      {
+	if((Rank >> j) & 0x1) cout << 'Q';
+	else cout << '-';
       }
       cout << endl;
     }
@@ -163,7 +214,7 @@ private:
     while(QueenIndex < 64)
     {
       Mask |= ((uint64_t)1)<<(63-QueenIndex);
-      if((QueenIndex & ((uint64_t)0x7)) == (uint64_t)0x7) break;
+      if((QueenIndex & ((uint64_t)0x7)) == (uint64_t)0x0) break;
 
       QueenIndex += 7;
     }
@@ -177,7 +228,7 @@ private:
     while(QueenIndex >= 0)
     {
       Mask |= ((uint64_t)1)<<(63-QueenIndex);
-      if((QueenIndex & ((uint64_t)0x7)) == (uint64_t)0x7) break;
+      if((QueenIndex & ((uint64_t)0x7)) == (uint64_t)0x0) break;
 
       QueenIndex -= 9;
     }
@@ -202,9 +253,10 @@ int main()
   }
   else
   {
-    cout << rc.value() << " returned." << endl;
+    cout << std::hex << rc.value() << " returned." << endl;
   }
 
+  EQ::qq(rc.value());
 
   
 };

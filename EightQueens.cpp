@@ -13,6 +13,9 @@ using std::optional;
 #include<bit>
 using std::countr_one;
 
+#include<bitset>
+using std::bitset;
+
 
 class cBoard
 {

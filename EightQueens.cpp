@@ -10,9 +10,6 @@ using std::array;
 #include<optional>
 using std::optional;
 
-#include<bit>
-using std::countr_one;
-
 #include<bitset>
 using std::bitset;
 
@@ -56,78 +53,35 @@ public:
     int const QueenCount = std::bitset<64>(QueenPattern).count();
     int const LegalPositionsCount = std::bitset<64>(LegalPositions).count();
 
+    // Nowhere to go.
     if(!LegalPositionsCount) return std::nullopt;
-    
-    cout << "There are " << QueenCount << " queens on the board and ";
-    cout << LegalPositionsCount << " legal positions remaining." << endl;
-    
-    // Find next legal position and stick a queen in it.
-    int QueenIndex = -1;
-    for(int i = 63; i >= 0; i--)
-    {
-      if((LegalPositions >> i) & 0x1)
-      {
-	QueenIndex = (63 - i);
-	break;
-      }
-    }
-    
-    //uint64_t const QueenIndex = ((uint64_t)64)-(countr_one(LegalPositions));    
-    cout << "Adding queen at index: " << QueenIndex << endl;    
+
+    // Find the next position to put a queen at.   
+    int const QueenIndex = NextLegalPosition(LegalPositions, 0);
     QueenPattern |= (((uint64_t)1) << (63-QueenIndex));
 
+    // If this is enough queens, return.
     if(8 == std::bitset<64>(QueenPattern).count()) return QueenPattern;
-    
-    // Update legal positions mask.
-    ////////////////////////////////////////
-    // Rank - everything &7
-    LegalPositions = EliminateRank(LegalPositions, QueenIndex);
-    //pp(QueenPattern, LegalPositions);
-    // File - All positive values with the same lowest 3 bits
-    LegalPositions = EliminateFile(LegalPositions, QueenIndex);
-    //pp(QueenPattern, LegalPositions);
-    // Right-increasing diagonal - add 9 until we have 0x7 in the lowest 3 bits
-    LegalPositions = EliminateRightIncreasingDiagonal(LegalPositions, QueenIndex);
-    //pp(QueenPattern, LegalPositions);
-    // Right-decreasing diagonal - subtract 7 until we have 0x7 in the lowest 3 bits
-    LegalPositions = EliminateRightDecreasingDiagonal(LegalPositions, QueenIndex);
-    //pp(QueenPattern, LegalPositions);
-    // Left-increasing diagonal - add 7 until we have 0x0 in the lowest 3 bits
-    LegalPositions = EliminateLeftIncreasingDiagonal(LegalPositions, QueenIndex);
-    //pp(QueenPattern, LegalPositions);
-    // Left-decreasing diagonal - subtract 9 until we have 0x0 in the lowest 3 bits.
-    LegalPositions = EliminateLeftDecreasingDiagonal(LegalPositions, QueenIndex);
-    pp(QueenPattern, LegalPositions);
-	
 
-    optional<uint64_t> NewAttempt;
-    NewAttempt = AddQueen(QueenPattern, LegalPositions);
+    // Otherwise, update the legal positions and recurse.
+    LegalPositions = UpdateLegalPositions(LegalPositions, QueenIndex);
+
+    //pp(QueenPattern, LegalPositions);
+
+    optional<uint64_t> NewAttempt = AddQueen(QueenPattern, LegalPositions);
+
     while(!NewAttempt.has_value())
     {
-      // Don't test this position again.
-      // Invalidate what would have been tested and try again.
-      // If there's nothing left, *we* return.
-
-      int NextQueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
-
-      cout << "Failed to place. Call based the attempt on index: " << NextQueenIndex << endl;
-      
+      // Attempt failed. Invalidate the position and try the next possible position.
+      int const NextQueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
       if(NextQueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
-            
+      // Update the mask so we don't try to put a queen here again.      
       LegalPositions &= ~(((uint64_t)1)<<(63-NextQueenIndex));
+      
       NewAttempt = AddQueen(QueenPattern, LegalPositions);
     }
 
     return NewAttempt.value();
-  }
-
-  static int NextLegalPosition(uint64_t LegalPositions, int QueenIndex)
-  {
-    for(int i = (63-(QueenIndex+1)); i >= 0; i--)
-    {
-      if((LegalPositions >> i) & 0x1) return (63 - i);
-    }
-    return -1;
   }
 
   static void pp(uint64_t QueenPattern, uint64_t LegalPositions)
@@ -162,26 +116,44 @@ public:
 
 private:
 
+  static inline uint64_t UpdateLegalPositions(uint64_t LegalPositions, int QueenIndex)
+  {
+    // Rank - everything &7
+    LegalPositions = EliminateRank(LegalPositions, QueenIndex);
+    // File - All positive values with the same lowest 3 bits
+    LegalPositions = EliminateFile(LegalPositions, QueenIndex);
+    // Right-increasing diagonal - add 9 until we have 0x7 in the lowest 3 bits
+    LegalPositions = EliminateRightIncreasingDiagonal(LegalPositions, QueenIndex);
+    // Right-decreasing diagonal - subtract 7 until we have 0x7 in the lowest 3 bits
+    LegalPositions = EliminateRightDecreasingDiagonal(LegalPositions, QueenIndex);
+    // Left-increasing diagonal - add 7 until we have 0x0 in the lowest 3 bits
+    LegalPositions = EliminateLeftIncreasingDiagonal(LegalPositions, QueenIndex);
+    // Left-decreasing diagonal - subtract 9 until we have 0x0 in the lowest 3 bits.
+    LegalPositions = EliminateLeftDecreasingDiagonal(LegalPositions, QueenIndex);
+    return LegalPositions;
+  }
+  
+  static inline int NextLegalPosition(uint64_t LegalPositions, int QueenIndex)
+  {
+    bitset<64> const lp(LegalPositions);
+    if(lp.none()) return -1;
+    while(!lp[63-QueenIndex]){ QueenIndex++; }
+    return QueenIndex;
+  }  
+
   // Rank - everything &7
   [[nodiscard]] static uint64_t EliminateRank(uint64_t LegalPositions, int QueenIndex)
   {
     int const Rank = QueenIndex >> 3;
-    //cout << "Rank: " << Rank << endl;
-    //int StartIndex = QueenIndex & (~0x7);
-    //cout << "StartIndex: " << StartIndex << endl;
-    uint64_t const Mask = ~(((uint64_t)UINT8_MAX) << ((7-Rank)<<3));
-    //cout << std::hex << "Mask: " << Mask << endl;
-    //cout << std::hex << "Lega: " << LegalPositions << endl;
-    return LegalPositions & Mask;
+    uint64_t const Mask = ~(((uint64_t)UINT8_MAX) << ((7-Rank)<<3));    
+    return (LegalPositions & Mask);
   }
     // File - All positive values with the same lowest 3 bits
   [[nodiscard]] static uint64_t EliminateFile(uint64_t LegalPositions, int QueenIndex)
   {
     static const uint64_t FILE_MASK = 0x8080808080808080;
     int const File = QueenIndex & 0x7;
-
     uint64_t const Mask = ~(FILE_MASK >> File);
-    //cout << "File mask: " << Mask << endl;
     return LegalPositions & Mask;
   }
     // Right-increasing diagonal - add 9 until we have 0x7 in the lowest 3 bits
@@ -192,7 +164,6 @@ private:
     {
       Mask |= ((uint64_t)1)<<(63-QueenIndex);
       if((QueenIndex & ((uint64_t)0x7)) == (uint64_t)0x7) break;
-
       QueenIndex += 9;
     }
     return (LegalPositions & (~Mask));
@@ -205,7 +176,6 @@ private:
     {
       Mask |= ((uint64_t)1)<<(63-QueenIndex);
       if((QueenIndex & ((uint64_t)0x7)) == (uint64_t)0x7) break;
-
       QueenIndex -= 7;
     }
     return (LegalPositions & (~Mask));
@@ -218,7 +188,6 @@ private:
     {
       Mask |= ((uint64_t)1)<<(63-QueenIndex);
       if((QueenIndex & ((uint64_t)0x7)) == (uint64_t)0x0) break;
-
       QueenIndex += 7;
     }
     return (LegalPositions & (~Mask));
@@ -232,7 +201,6 @@ private:
     {
       Mask |= ((uint64_t)1)<<(63-QueenIndex);
       if((QueenIndex & ((uint64_t)0x7)) == (uint64_t)0x0) break;
-
       QueenIndex -= 9;
     }
     return (LegalPositions & (~Mask));
@@ -256,184 +224,11 @@ int main()
   }
   else
   {
-    cout << std::hex << rc.value() << " returned." << endl;
+    //cout << std::hex << rc.value() << " returned." << endl;
+    EQ::qq(rc.value());
   }
 
-  EQ::qq(rc.value());
+
 
   
 };
-
-
-
-class cEightQueensModel
-{
-  array<bool, 64> mLegal;
-  cBoard & mBoard;
-  
-public:
-
-  cEightQueensModel(cBoard & Board) : mBoard(Board)
-  {
-    for(bool& b : mLegal) b = true;
-  }
-
-  void Next()
-  {
-    // Find next legal move & make it.
-    PlaceQueen(NextLegalMove());
-  }
-
-private:
-
-  void PlaceQueen(int Index)
-  {
-    uint_fast8_t const Rank = 1 + (Index>>3);
-    char const File = 'a' + (Index&0x7);
-
-    UpdateLegalMoves(Index);
-    
-    PlaceQueen(File, Rank);
-  }
-  
-  void PlaceQueen(char File, uint_fast8_t Rank)
-  {
-    // Update board.    
-    mBoard.PlacePiece('Q', File, Rank);
-    mBoard.Draw();    
-  };
-  
-  void UpdateLegalMoves(int Index)
-  {
-    // Illegal moves now:
-
-    // Rank - everything &7
-    EliminateRank(Index);
-    // File - All positive values with the same lowest 3 bits
-    EliminateFile(Index);
-    // Right-increasing diagonal - add 9 until we have 0x7 in the lowest 3 bits
-    EliminateRightIncreasingDiagonal(Index);
-    // Right-decreasing diagonal - subtract 7 until we have 0x7 in the lowest 3 bits
-    EliminateRightDecreasingDiagonal(Index);
-    // Left-increasing diagonal - add 7 until we have 0x0 in the lowest 3 bits
-    EliminateLeftIncreasingDiagonal(Index);
-    // Left-decreasing diagonal - subtract 9 until we have 0x0 in the lowest 3 bits.
-    EliminateLeftDecreasingDiagonal(Index);
-    
-  };
-
-  void EliminateRank(int Index)
-  {
-    int const StartIndex = Index & (~0x7);
-    for(int i = 0; i < 8; i++)
-    {
-      int const TestIndex = StartIndex+i;
-      if(mLegal[TestIndex])
-      {
-	mLegal[StartIndex+i] = false;
-	mBoard.PlacePiece('x', StartIndex+i);
-      }
-    }
-  }
-
-  void EliminateFile(int Index)
-  {
-    int StartIndex = Index & 0x7;
-    for(int i = 0; i < 8; i++)
-    {
-      int const TestIndex = StartIndex + (i << 3);
-      if(mLegal[TestIndex])
-      {
-	mLegal[StartIndex + (i << 3)] = false;
-	mBoard.PlacePiece('x', StartIndex+(i<<3));
-      }
-    }
-  }
-
-  void EliminateRightIncreasingDiagonal(int Index)
-  {
-    // Add 9 until we have 7 in the lower 3 bits, or we exceed 64.
-    while(Index < 64)
-    {
-      if(mLegal[Index])
-      {
-	mLegal[Index] = false;
-	mBoard.PlacePiece('x', Index);
-      }
-      
-      if((Index & 0x7) == 0x7) return;
-      Index += 9;
-    }
-  }
-
-  void EliminateRightDecreasingDiagonal(int Index)
-  {
-    // Subtract 7 until we have 7 in the lower 3 bits, or we drop below 0.
-    while(Index >= 0)
-    {
-      if(mLegal[Index])
-      {
-	mLegal[Index] = false;
-	mBoard.PlacePiece('x', Index);
-      }
-      
-      if((Index & 0x7) == 0x7) return;
-      Index -= 7;
-    }
-  }
-
-  void EliminateLeftIncreasingDiagonal(int Index)
-  {
-    // Add 7 until we have 0 in the lower 3 bits, or we exceed 64.
-    while(Index < 64)
-    {
-      if(mLegal[Index])
-      {
-	mLegal[Index] = false;
-	mBoard.PlacePiece('x', Index);
-      }
-      
-      if((Index & 0x7) == 0x0) return;
-      Index += 7;
-    }
-  }
-
-  void EliminateLeftDecreasingDiagonal(int Index)
-  {
-    // Subtract 9 until we have 0 in the lower 3 bits, or we drop below 0.
-    while(Index >= 0)
-    {
-      if(mLegal[Index])
-      {
-	mLegal[Index] = false;
-	mBoard.PlacePiece('x', Index);
-      }
-      
-      if((Index & 0x7) == 0x0) return;
-      Index -= 9;
-    }
-  }
-  
-  int NextLegalMove() const
-  {
-    for(array<bool,64>::const_iterator b = mLegal.begin(); b < mLegal.end(); b++){ if (*b) return b-mLegal.begin(); }
-    return -1;
-  }
-
-};
-
-
-
-
-int main2(int argc, char* argv[])
-{
-  int const Iterations = atoi(argv[1]);
-  
-  cBoard board;
-  cEightQueensModel EQM(board);
-
-  for(int i = 0; i < Iterations; i++) EQM.Next();
-
-
-  return 0;
-}

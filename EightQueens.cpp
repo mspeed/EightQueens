@@ -52,19 +52,19 @@ public:
   
   static optional<uint64_t> AddQueen(uint64_t QueenPattern, uint64_t LegalPositions)
   {    
+
+    if(8 == std::bitset<64>(QueenPattern).count())
+    {
+      qq(QueenPattern);
+      return QueenPattern;
+    }
     
     int QueenIndex = NextLegalPosition(LegalPositions, 0);
-          
+              
     while(std::bitset<64>(LegalPositions).count())
     {
       LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
       uint64_t TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
-
-      if(7 == std::bitset<64>(QueenPattern).count())
-      {
-	qq(QueenPattern);
-	return QueenPattern;
-      }
 	
       while(!AddQueen(TestQueenPattern, UpdateLegalPositions(LegalPositions, QueenIndex)).has_value())
       {

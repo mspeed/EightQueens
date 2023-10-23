@@ -49,6 +49,7 @@ public:
 class EQ
 {
 public:
+  
   static optional<uint64_t> AddQueen(uint64_t QueenPattern, uint64_t LegalPositions)
   {    
     int const QueenCount = std::bitset<64>(QueenPattern).count();
@@ -57,50 +58,38 @@ public:
     // Nowhere to go.
     if(!LegalPositionsCount) return std::nullopt;
 
-    // Find the next position to put a queen at.   
-    int QueenIndex = NextLegalPosition(LegalPositions, 0);
-    QueenPattern |= (((uint64_t)1) << (63-QueenIndex));
-
     // If this is enough queens, return.
-    if(8 == std::bitset<64>(QueenPattern).count())
+    if(5 == std::bitset<64>(QueenPattern).count())
     {
-      LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
       qq(QueenPattern);
       return QueenPattern;
     }
-
-    // Otherwise, update the legal positions and recurse.
-    LegalPositions = UpdateLegalPositions(LegalPositions, QueenIndex);
-    LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
     
-    //pp(QueenPattern, LegalPositions);
-
-    //  While(remaining legal positions)
-    while(std::bitset<64>(LegalPositions).count())
+    int QueenIndex = NextLegalPosition(LegalPositions, 0);
+    uint64_t TestLegalPositions = LegalPositions;
+      
+    while(std::bitset<64>(TestLegalPositions).count())
     {
-
-      //optional<uint64_t> NewAttempt = AddQueen(QueenPattern, LegalPositions);
-    
-      //      while(!NewAttempt.has_value())
-      while(!AddQueen(QueenPattern, LegalPositions).has_value())
-      {
-	// Attempt failed. Invalidate the position and try the next possible position.
-	QueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
-	if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
-	// Update the mask so we don't try to put a queen here again.      
-	LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
+      TestLegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
+      uint64_t TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
 	
-	//NewAttempt = AddQueen(QueenPattern, LegalPositions);
+      while(!AddQueen(TestQueenPattern, UpdateLegalPositions(TestLegalPositions, QueenIndex)).has_value())
+      {
+	// Find where to try next
+	QueenIndex = NextLegalPosition(TestLegalPositions, QueenIndex);
+	if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
+	  
+	// Set up for this queen position.
+	TestLegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
+	TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
       }
 
-      //
-    
-    // Here we've successfully found a pattern.
-    // Log it, and move on.
+      QueenIndex = NextLegalPosition(TestLegalPositions, QueenIndex);
+      if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
+	
     }
-    // /(while(remaining legal positions)
 
-    return std::nullopt;//NewAttempt.value(); // nullopt to force the hunt to continue.
+    return QueenPattern;//NewAttempt.value(); // nullopt to force the hunt to continue.
   }
 
   static void pp(uint64_t QueenPattern, uint64_t LegalPositions)

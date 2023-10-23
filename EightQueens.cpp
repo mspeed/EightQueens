@@ -48,23 +48,27 @@ public:
 
 class EQ
 {
+  enum eQueenCount
+  {
+    EIGHT_QUEENS = 8,
+  };
+  
 public:
   
   static optional<uint64_t> AddQueen(uint64_t QueenPattern, uint64_t LegalPositions)
-  {    
-
-    if(8 == std::bitset<64>(QueenPattern).count())
-    {
-      qq(QueenPattern);
-      return QueenPattern;
-    }
-    
+  {        
     int QueenIndex = NextLegalPosition(LegalPositions, 0);
               
     while(std::bitset<64>(LegalPositions).count())
     {
       LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
       uint64_t TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
+
+      if(EIGHT_QUEENS == std::bitset<64>(TestQueenPattern).count())
+      {
+	qq(TestQueenPattern);
+	return TestQueenPattern;
+      }
 	
       while(!AddQueen(TestQueenPattern, UpdateLegalPositions(LegalPositions, QueenIndex)).has_value())
       {
@@ -77,12 +81,12 @@ public:
 	TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
       }
 
+      // Find the next possible queen index to try.
       QueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
-      if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
-	
+      if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.	
     }
 
-    return QueenPattern;//NewAttempt.value(); // nullopt to force the hunt to continue.
+    return std::nullopt;
   }
 
   static void pp(uint64_t QueenPattern, uint64_t LegalPositions)
@@ -102,6 +106,8 @@ public:
 
   static void qq(uint64_t QueenPattern)
   {
+    static int ConfigCount = 0;
+    ConfigCount++;
     for(int i = 0; i < 8; i++)
     {
       int Rank = static_cast<uint8_t>(QueenPattern >> (8*i));
@@ -112,7 +118,7 @@ public:
       }
       cout << endl;
     }
-    cout << endl;
+    cout << ConfigCount << endl;
   }
 
 private:
@@ -212,24 +218,7 @@ private:
 
 int main()
 {
-  uint64_t QueensMask = 0;
-  uint64_t PositionsMask = UINT64_MAX;
-  int QueenCount = 0;
-
-
-  optional<uint64_t> rc = EQ::AddQueen(QueensMask, PositionsMask);
-
-  if(!rc.has_value())
-  {
-    cout << "False returned." << endl;
-  }
-  else
-  {
-    //cout << std::hex << rc.value() << " returned." << endl;
-    EQ::qq(rc.value());
-  }
-
-
-
-  
+  uint64_t const QueensMask = 0;
+  uint64_t const PositionsMask = UINT64_MAX;
+  optional<uint64_t> rc = EQ::AddQueen(QueensMask, PositionsMask);  
 };

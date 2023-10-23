@@ -52,18 +52,6 @@ public:
   
   static optional<uint64_t> AddQueen(uint64_t QueenPattern, uint64_t LegalPositions)
   {    
-    int const QueenCount = std::bitset<64>(QueenPattern).count();
-    int const LegalPositionsCount = std::bitset<64>(LegalPositions).count();
-
-    // Nowhere to go.
-    if(!LegalPositionsCount) return std::nullopt;
-
-    // If this is enough queens, return.
-    if(5 == std::bitset<64>(QueenPattern).count())
-    {
-      qq(QueenPattern);
-      return QueenPattern;
-    }
     
     int QueenIndex = NextLegalPosition(LegalPositions, 0);
           
@@ -71,6 +59,12 @@ public:
     {
       LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
       uint64_t TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
+
+      if(7 == std::bitset<64>(QueenPattern).count())
+      {
+	qq(QueenPattern);
+	return QueenPattern;
+      }
 	
       while(!AddQueen(TestQueenPattern, UpdateLegalPositions(LegalPositions, QueenIndex)).has_value())
       {

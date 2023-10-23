@@ -66,25 +66,24 @@ public:
     }
     
     int QueenIndex = NextLegalPosition(LegalPositions, 0);
-    uint64_t TestLegalPositions = LegalPositions;
-      
-    while(std::bitset<64>(TestLegalPositions).count())
+          
+    while(std::bitset<64>(LegalPositions).count())
     {
-      TestLegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
+      LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
       uint64_t TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
 	
-      while(!AddQueen(TestQueenPattern, UpdateLegalPositions(TestLegalPositions, QueenIndex)).has_value())
+      while(!AddQueen(TestQueenPattern, UpdateLegalPositions(LegalPositions, QueenIndex)).has_value())
       {
 	// Find where to try next
-	QueenIndex = NextLegalPosition(TestLegalPositions, QueenIndex);
+	QueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
 	if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
 	  
 	// Set up for this queen position.
-	TestLegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
+	LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
 	TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
       }
 
-      QueenIndex = NextLegalPosition(TestLegalPositions, QueenIndex);
+      QueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
       if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
 	
     }

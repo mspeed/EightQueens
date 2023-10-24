@@ -106,19 +106,20 @@ public:
 
   static void qq(uint64_t QueenPattern)
   {
-    static int ConfigCount = 0;
+    static int ConfigCount = 1;
+    cout << ConfigCount << endl;
     ConfigCount++;
     for(int i = 0; i < 8; i++)
     {
       int Rank = static_cast<uint8_t>(QueenPattern >> (8*i));
       for(int j = 7; j >= 0; j--)
       {
-	if((Rank >> j) & 0x1) cout << 'Q';
-	else cout << '-';
+	if((Rank >> j) & 0x1) cout << "Q ";
+	else cout << "- ";
       }
       cout << endl;
     }
-    cout << ConfigCount << endl;
+    cout << endl;
   }
 
 private:

@@ -107,7 +107,7 @@ public:
   static void qq(uint64_t QueenPattern)
   {
     static int ConfigCount = 1;
-    cout << ConfigCount << endl;
+    cout << ConfigCount << ": " << endl;
     ConfigCount++;
     for(int i = 0; i < 8; i++)
     {

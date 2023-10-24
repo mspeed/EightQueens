@@ -1,50 +1,11 @@
 #include<iostream>
 using std::cout; using std::endl;
 
-#include<string>
-using std::string;
-
-#include<array>
-using std::array;
-
 #include<optional>
 using std::optional;
 
 #include<bitset>
 using std::bitset;
-
-
-class cBoard
-{
-  string const mDefaultRank = ". . . . . . . .";
-  array<string, 8> mRanks;
-  
-public:
-  cBoard()
-  {
-    for(string& i : mRanks) i = mDefaultRank; 
-    for(string& i : mRanks) cout << i << "\r\n";
-  }
-  
-  void Draw() 
-  {
-      for(int i = 0; i < 8; i++) cout << "\e[A";
-      for(string& i : mRanks) cout << i << "\r\n";
-      cout << std::flush;
-  }
-
-  void inline PlacePiece(char Piece, char File, uint_fast8_t Rank)
-  {
-    mRanks[8-Rank][(File-'a')<<1] = Piece;
-  }
-
-  void inline PlacePiece(char Piece, int Index)
-  {
-    mRanks[7-(Index>>3)][(Index&0x7)<<1] = Piece;
-  }
-
-};
-
 
 class EQ
 {
@@ -64,7 +25,7 @@ public:
       LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
       uint64_t TestQueenPattern = QueenPattern | (((uint64_t)1) << (63-QueenIndex));
 
-      if(EIGHT_QUEENS == std::bitset<64>(TestQueenPattern).count())
+      if(EIGHT_QUEENS == std::bitset<64>(TestQueenPattern).count()) [[unlikely]]
       {
 	qq(TestQueenPattern);
 	return TestQueenPattern;
@@ -74,7 +35,7 @@ public:
       {
 	// Find where to try next
 	QueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
-	if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.
+	if(QueenIndex < 0) [[unlikely]] return std::nullopt; // Nothing we can do at this level.
 	  
 	// Set up for this queen position.
 	LegalPositions &= ~(((uint64_t)1)<<(63-QueenIndex));
@@ -83,25 +44,10 @@ public:
 
       // Find the next possible queen index to try.
       QueenIndex = NextLegalPosition(LegalPositions, QueenIndex);
-      if(QueenIndex < 0) return std::nullopt; // Nothing we can do at this level.	
+      if(QueenIndex < 0) [[unlikely]] return std::nullopt; // Nothing we can do at this level.	
     }
 
     return std::nullopt;
-  }
-
-  static void pp(uint64_t QueenPattern, uint64_t LegalPositions)
-  {
-    for(int i = 0; i < 8; i++)
-    {
-      int Rank = static_cast<uint8_t>(LegalPositions >> (8*i));
-      for(int j = 7; j >= 0; j--)
-      {
-	if((Rank >> j) & 0x1) cout << '-';
-	else cout << 'x';
-      }
-      cout << endl;
-    }
-    cout << endl;
   }
 
   static void qq(uint64_t QueenPattern)
@@ -111,7 +57,7 @@ public:
     ConfigCount++;
     for(int i = 0; i < 8; i++)
     {
-      int Rank = static_cast<uint8_t>(QueenPattern >> (8*i));
+      int const Rank = static_cast<uint8_t>(QueenPattern >> (8*i));
       for(int j = 7; j >= 0; j--)
       {
 	if((Rank >> j) & 0x1) cout << "Q ";
@@ -124,7 +70,7 @@ public:
 
 private:
 
-  static inline uint64_t UpdateLegalPositions(uint64_t LegalPositions, int QueenIndex)
+  [[nodiscard]] static inline uint64_t UpdateLegalPositions(uint64_t LegalPositions, int QueenIndex)
   {
     // Rank - everything &7
     LegalPositions = EliminateRank(LegalPositions, QueenIndex);
@@ -141,10 +87,10 @@ private:
     return LegalPositions;
   }
   
-  static inline int NextLegalPosition(uint64_t LegalPositions, int QueenIndex)
+  [[nodiscard]] static inline int NextLegalPosition(uint64_t LegalPositions, int QueenIndex)
   {
     bitset<64> const lp(LegalPositions);
-    if(lp.none()) return -1;
+    if(lp.none()) [[unlikely]] return -1;
     while(!lp[63-QueenIndex]){ QueenIndex++; }
     return QueenIndex;
   }  
